@@ -34,6 +34,7 @@ import type {
   CompleteOrderRequest,
   CreemPaymentRequest,
   CreemPaymentResponse,
+  BepUsdtPaymentResponse,
   WaffoPaymentRequest,
   WaffoPaymentResponse,
   WaffoPancakePaymentRequest,
@@ -127,6 +128,30 @@ export async function requestCreemPayment(
   request: CreemPaymentRequest
 ): Promise<CreemPaymentResponse> {
   const res = await api.post('/api/user/creem/pay', request, {
+    skipBusinessError: true,
+  } as Record<string, unknown>)
+  return res.data
+}
+
+/**
+ * Calculate payment amount for BEPUSDT payment
+ */
+export async function calculateBepUsdtAmount(
+  request: AmountRequest
+): Promise<AmountResponse> {
+  const res = await api.post('/api/user/bepusdt/amount', request, {
+    skipBusinessError: true,
+  } as Record<string, unknown>)
+  return res.data
+}
+
+/**
+ * Request BEPUSDT payment
+ */
+export async function requestBepUsdtPayment(
+  request: AmountRequest
+): Promise<BepUsdtPaymentResponse> {
+  const res = await api.post('/api/user/bepusdt/pay', request, {
     skipBusinessError: true,
   } as Record<string, unknown>)
   return res.data

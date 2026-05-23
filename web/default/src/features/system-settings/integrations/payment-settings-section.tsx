@@ -132,6 +132,14 @@ const paymentSchema = z.object({
       })
     }
   }),
+  BepUsdtApiUrl: z.string().refine((value) => {
+    const trimmed = value.trim()
+    if (!trimmed) return true
+    return /^https?:\/\//.test(trimmed)
+  }, 'Provide a valid URL starting with http:// or https://'),
+  BepUsdtAuthToken: z.string(),
+  BepUsdtUnitPrice: z.coerce.number().min(0),
+  BepUsdtMinTopUp: z.coerce.number().min(0),
 })
 
 type PaymentFormValues = z.infer<typeof paymentSchema>
@@ -152,6 +160,64 @@ type PaymentSettingsSectionProps = {
   waffoPancakeProvisionedStoreID?: string
   waffoPancakeProvisionedProductID?: string
   complianceDefaults: PaymentComplianceDefaults
+}
+
+function saveBepUsdtSettingsFactory(
+  form: ReturnType<typeof useForm<PaymentFormValues>>,
+  initialRef: React.RefObject<PaymentFormValues>,
+  updateOption: ReturnType<typeof useUpdateOption>
+) {
+  return async () => {
+    const values = form.getValues()
+    const sanitized = {
+      BepUsdtApiUrl: values.BepUsdtApiUrl.trim().replace(/\/+$/, ''),
+      BepUsdtAuthToken: values.BepUsdtAuthToken.trim(),
+      BepUsdtUnitPrice: values.BepUsdtUnitPrice as number,
+      BepUsdtMinTopUp: values.BepUsdtMinTopUp as number,
+    }
+
+    const initial = {
+      BepUsdtApiUrl: initialRef.current.BepUsdtApiUrl.trim().replace(/\/+$/, ''),
+      BepUsdtAuthToken: initialRef.current.BepUsdtAuthToken.trim(),
+      BepUsdtUnitPrice: initialRef.current.BepUsdtUnitPrice,
+      BepUsdtMinTopUp: initialRef.current.BepUsdtMinTopUp,
+    }
+
+    const updates: Array<{ key: string; value: string | number }> = []
+
+    if (sanitized.BepUsdtApiUrl !== initial.BepUsdtApiUrl) {
+      updates.push({ key: 'BepUsdtApiUrl', value: sanitized.BepUsdtApiUrl })
+    }
+
+    if (
+      sanitized.BepUsdtAuthToken &&
+      sanitized.BepUsdtAuthToken !== initial.BepUsdtAuthToken
+    ) {
+      updates.push({
+        key: 'BepUsdtAuthToken',
+        value: sanitized.BepUsdtAuthToken,
+      })
+    }
+
+    if (sanitized.BepUsdtUnitPrice !== initial.BepUsdtUnitPrice) {
+      updates.push({
+        key: 'BepUsdtUnitPrice',
+        value: sanitized.BepUsdtUnitPrice,
+      })
+    }
+
+    if (sanitized.BepUsdtMinTopUp !== initial.BepUsdtMinTopUp) {
+      updates.push({ key: 'BepUsdtMinTopUp', value: sanitized.BepUsdtMinTopUp })
+    }
+
+    if (updates.length === 0) {
+      return
+    }
+
+    for (const update of updates) {
+      await updateOption.mutateAsync(update)
+    }
+  }
 }
 
 export function PaymentSettingsSection({
@@ -1461,6 +1527,158 @@ export function PaymentSettingsSection({
               {updateOption.isPending
                 ? t('Saving...')
                 : t('Save Creem settings')}
+            </Button>
+          </div>
+
+          <Separator />
+
+          <div className='space-y-4'>
+            <div>
+              <h3 className='text-lg font-medium'>
+                {t('BEPUSDT Gateway')}
+              </h3>
+              <p className='text-muted-foreground text-sm'>
+                {t(
+                  'Configuration for BEPUSDT (USDT/USDC) payment integration'
+                )}
+              </p>
+            </div>
+
+            <div className='rounded-md bg-blue-50 p-4 text-sm text-blue-900 dark:bg-blue-950 dark:text-blue-100'>
+              <p className='mb-2 font-medium'>
+                {t('Webhook Configuration:')}
+              </p>
+              <ul className='list-inside list-disc space-y-1'>
+                <li>
+                  {t('Webhook URL:')}{' '}
+                  <code className='rounded bg-blue-100 px-1 py-0.5 text-xs dark:bg-blue-900'>
+                    {'<ServerAddress>/api/bepusdt/webhook'}
+                  </code>
+                </li>
+                <li>
+                  {t('Supports all chains: TRC20, ERC20, BEP20, Polygon, Arbitrum, Solana, etc.')}
+                </li>
+              </ul>
+            </div>
+
+            <div className='grid gap-6 md:grid-cols-2'>
+              <FormField
+                control={form.control}
+                name='BepUsdtApiUrl'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('BEPUSDT API URL')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t('https://pay.example.com')}
+                        {...field}
+                        onChange={(event) =>
+                          field.onChange(event.target.value)
+                        }
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('Base URL of your BEPUSDT instance')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='BepUsdtAuthToken'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Auth Token')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='password'
+                        placeholder={t('Enter BEPUSDT auth token')}
+                        autoComplete='new-password'
+                        {...field}
+                        onChange={(event) =>
+                          field.onChange(event.target.value)
+                        }
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'API auth token from BEPUSDT admin panel (leave blank unless updating)'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className='grid gap-6 md:grid-cols-2'>
+              <FormField
+                control={form.control}
+                name='BepUsdtUnitPrice'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {t('Unit price (USDT / USD)')}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        step='0.01'
+                        min={0}
+                        value={(field.value ?? 0) as number}
+                        onChange={(event) =>
+                          field.onChange(event.target.valueAsNumber)
+                        }
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('e.g., 1 means 1 USDT per USD')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='BepUsdtMinTopUp'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Minimum top-up (USD)')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        step='1'
+                        min={0}
+                        value={(field.value ?? 0) as number}
+                        onChange={(event) =>
+                          field.onChange(event.target.valueAsNumber)
+                        }
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('Minimum recharge amount in USD')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <Button
+              type='button'
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                saveBepUsdtSettingsFactory(form, initialRef, updateOption)()
+              }}
+              disabled={updateOption.isPending}
+            >
+              {updateOption.isPending
+                ? t('Saving...')
+                : t('Save BEPUSDT settings')}
             </Button>
           </div>
 

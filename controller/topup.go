@@ -95,10 +95,30 @@ func GetTopUpInfo(c *gin.Context) {
 		}
 	}
 
+	enableBepUsdt := isBepUsdtTopUpEnabled()
+	if enableBepUsdt {
+		hasBepUsdt := false
+		for _, method := range payMethods {
+			if method["type"] == model.PaymentMethodBepUsdt {
+				hasBepUsdt = true
+				break
+			}
+		}
+		if !hasBepUsdt {
+			payMethods = append(payMethods, map[string]string{
+				"name":      "USDT/USDC",
+				"type":      model.PaymentMethodBepUsdt,
+				"color":     "#26A17B",
+				"min_topup": strconv.Itoa(setting.BepUsdtMinTopUp),
+			})
+		}
+	}
+
 	data := gin.H{
 		"enable_online_topup":              isEpayTopUpEnabled(),
 		"enable_stripe_topup":              isStripeTopUpEnabled(),
 		"enable_creem_topup":               isCreemTopUpEnabled(),
+		"enable_bepusdt_topup":             enableBepUsdt,
 		"enable_waffo_topup":               enableWaffo,
 		"enable_waffo_pancake_topup":       enableWaffoPancake,
 		"enable_redemption":                complianceConfirmed,
@@ -116,6 +136,7 @@ func GetTopUpInfo(c *gin.Context) {
 		"stripe_min_topup":        setting.StripeMinTopUp,
 		"waffo_min_topup":         setting.WaffoMinTopUp,
 		"waffo_pancake_min_topup": setting.WaffoPancakeMinTopUp,
+		"bepusdt_min_topup":       setting.BepUsdtMinTopUp,
 		"amount_options":          operation_setting.GetPaymentSetting().AmountOptions,
 		"discount":                operation_setting.GetPaymentSetting().AmountDiscount,
 		"topup_link":              common.TopUpLink,

@@ -23,13 +23,16 @@ import {
   calculateAmount,
   calculateStripeAmount,
   calculateWaffoPancakeAmount,
+  calculateBepUsdtAmount,
   requestPayment,
   requestStripePayment,
+  requestBepUsdtPayment,
   isApiSuccess,
 } from '../api'
 import {
   isStripePayment,
   isWaffoPancakePayment,
+  isBepUsdtPayment,
   submitPaymentForm,
 } from '../lib'
 
@@ -50,11 +53,14 @@ export function usePayment() {
 
         const isStripe = isStripePayment(paymentType)
         const isPancake = isWaffoPancakePayment(paymentType)
+        const isBepusdt = isBepUsdtPayment(paymentType)
         const response = isStripe
           ? await calculateStripeAmount({ amount: topupAmount })
           : isPancake
             ? await calculateWaffoPancakeAmount({ amount: topupAmount })
-            : await calculateAmount({ amount: topupAmount })
+            : isBepusdt
+              ? await calculateBepUsdtAmount({ amount: topupAmount })
+              : await calculateAmount({ amount: topupAmount })
 
         if (isApiSuccess(response) && response.data) {
           const calculatedAmount = parseFloat(response.data)
@@ -82,7 +88,22 @@ export function usePayment() {
         setProcessing(true)
 
         const isStripe = isStripePayment(paymentType)
+        const isBepusdt = isBepUsdtPayment(paymentType)
         const amount = Math.floor(topupAmount)
+
+        if (isBepusdt) {
+          const response = await requestBepUsdtPayment({ amount })
+          if (!isApiSuccess(response)) {
+            toast.error(response.message || i18next.t('Payment request failed'))
+            return false
+          }
+          if (response.data?.payment_url) {
+            window.open(response.data.payment_url, '_blank')
+            toast.success(i18next.t('Redirecting to payment page...'))
+            return true
+          }
+          return false
+        }
 
         const response = isStripe
           ? await requestStripePayment({

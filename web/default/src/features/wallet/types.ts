@@ -45,6 +45,8 @@ export type CreemPaymentResponse = ApiResponse<{ checkout_url: string }>
 export type WaffoPaymentResponse = ApiResponse<
   { payment_url?: string } | string
 >
+export type BepUsdtPaymentResponse = ApiResponse<{ payment_url: string }>
+
 export type WaffoPancakePaymentResponse = ApiResponse<
   | {
       checkout_url?: string
@@ -150,6 +152,10 @@ export interface TopupInfo {
   enable_waffo_pancake_topup?: boolean
   /** Minimum topup amount for Waffo Pancake */
   waffo_pancake_min_topup?: number
+  /** Whether BEPUSDT topup is enabled */
+  enable_bepusdt_topup?: boolean
+  /** Minimum topup amount for BEPUSDT */
+  bepusdt_min_topup?: number
   /** Whether redemption code usage is enabled */
   enable_redemption?: boolean
   /** Whether compliance confirmation has been completed */

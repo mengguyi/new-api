@@ -142,6 +142,26 @@ func TestWaffoPancakeWebhookEnabledRequiresTopUpAndWebhookConfig(t *testing.T) {
 	require.False(t, isWaffoPancakeWebhookEnabled())
 }
 
+func TestBepUsdtWebhookEnabledRequiresTopUpAndWebhookConfig(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	originalApiUrl := setting.BepUsdtApiUrl
+	originalAuthToken := setting.BepUsdtAuthToken
+	t.Cleanup(func() {
+		setting.BepUsdtApiUrl = originalApiUrl
+		setting.BepUsdtAuthToken = originalAuthToken
+	})
+
+	setting.BepUsdtApiUrl = ""
+	setting.BepUsdtAuthToken = "test_token"
+	require.False(t, isBepUsdtWebhookEnabled())
+
+	setting.BepUsdtApiUrl = "https://pay.example.com"
+	require.True(t, isBepUsdtWebhookEnabled())
+
+	setting.BepUsdtAuthToken = ""
+	require.False(t, isBepUsdtWebhookEnabled())
+}
+
 func TestEpayWebhookEnabledRequiresTopUpAndWebhookConfig(t *testing.T) {
 	confirmPaymentComplianceForTest(t)
 	originalPayAddress := operation_setting.PayAddress

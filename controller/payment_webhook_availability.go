@@ -92,6 +92,22 @@ func isWaffoPancakeWebhookEnabled() bool {
 	return isWaffoPancakeTopUpEnabled()
 }
 
+func isBepUsdtTopUpEnabled() bool {
+	if !isPaymentComplianceConfirmed() {
+		return false
+	}
+	return strings.TrimSpace(setting.BepUsdtApiUrl) != "" &&
+		strings.TrimSpace(setting.BepUsdtAuthToken) != ""
+}
+
+func isBepUsdtWebhookConfigured() bool {
+	return strings.TrimSpace(setting.BepUsdtAuthToken) != ""
+}
+
+func isBepUsdtWebhookEnabled() bool {
+	return isBepUsdtTopUpEnabled()
+}
+
 func isEpayTopUpEnabled() bool {
 	if !isPaymentComplianceConfirmed() {
 		return false
